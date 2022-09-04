@@ -7,7 +7,6 @@ from textwrap import dedent
 
 import requests
 from PIL import Image
-import io
 
 import octoprint.plugin
 import octoprint.util
@@ -322,27 +321,28 @@ class MatrixNotifierPlugin(octoprint.plugin.EventHandlerPlugin,
 
         self.client.room_send(self.room_id, "m.room.message", content)
 
-    def getProxies(self):
+    @property
+    def http_proxy(self):
         http_proxy = self._settings.get(["http_proxy"])
         https_proxy = self._settings.get(["https_proxy"])
         return {"http": http_proxy, "https": https_proxy}
 
-    def take_image(self, snapshot_url="", flipH=False, flipV=False, rotate=False):
-        if snapshot_url == "":
+    def take_image(self, snapshot_url=None, flipH=False, flipV=False, rotate=False):
+        if snapshot_url == None:
             self._logger.info(
                 "Please configure the webcam snapshot settings "
                 "before enabling sending snapshots!"
             )
             return None
 
-        self._logger.debug("Snapshot URL: " + str(snapshot_url))
+        self._logger.debug("Snapshot URL: %s", snapshot_url)
         data = None
         if snapshot_url:
             try:
-                r = requests.get(snapshot_url, timeout=10, proxies=self.getProxies())
+                r = requests.get(snapshot_url, timeout=10, proxies=self.http_proxy)
                 data = r.content
             except Exception as e:
-                self._logger.exception("TimeOut Exception: " + str(e))
+                self._logger.exception("Exception while retrieving snapshot URL: %s", e)
                 return None
 
         self._logger.debug(
